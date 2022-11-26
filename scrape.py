@@ -79,17 +79,33 @@ insert_sql = '''insert into apartments
     values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
 '''
 
-conn = None
-try:
-    conn = psycopg2.connect(
-        database="apartment", user='postgres', password='klmn', host='127.0.0.1', port='5432'
-    )
-    cursor = conn.cursor()
-    cursor.execute(grant_sql)
-    cursor.execute(create_apartments_sql)
+
+def insert_in_database(cursor, create_table_sql, insert_sql):
+    cursor.execute(create_table_sql)
     print("table created successfully........")
     for item in apartments_features:
         cursor.execute(insert_sql, item)
+
+
+conn = None
+try:
+    conn = psycopg2.connect(
+        database="postgres", user='postgres', password='klmn', host='127.0.0.1', port='5432'
+    )
+    conn.autocommit = True
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM pg_database WHERE datname = 'apartment'")
+    exists = cursor.fetchone()
+    if not exists:
+        cursor.execute('CREATE DATABASE apartment')
+
+    conn = psycopg2.connect(
+        database="apartment", user='postgres', password='klmn', host='127.0.0.1', port='5432'
+    )
+
+    cursor = conn.cursor()
+    cursor.execute(grant_sql)
+    insert_in_database(cursor, create_apartments_sql, insert_sql)
     cursor.close()
     conn.commit()
 except (Exception, psycopg2.DatabaseError) as e:
@@ -97,4 +113,3 @@ except (Exception, psycopg2.DatabaseError) as e:
 finally:
     if conn is not None:
         conn.close()
-conn.close()
