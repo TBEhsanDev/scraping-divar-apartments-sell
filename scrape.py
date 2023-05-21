@@ -1,81 +1,109 @@
 import os
 from datetime import timedelta
+from pprint import pprint
 
 import psycopg2
 import requests
 import requests_cache
-from bs4 import BeautifulSoup
-from unidecode import unidecode
 
-BASE_URL = "https://divar.ir/v/"
+BASE_URL = "https://api.divar.ir/v8/posts-v2/web/"
 
 
 def f():
-    last_date = 1669189620361141
     with open('data.txt', 'a', encoding='utf-8') as f:
         for i in range(10):
-            data = requests.post("https://api.divar.ir/v8/web-search/6/apartment-sell",
-                                 json={"json_schema": {"category": {"value": "apartment-sell"}, "cities": ["6"]},
-                                       "last-post-date": last_date})
-            j = data.json()
-            last_date = j["last_post_date"]
-            for i in range(len(j["web_widgets"]["post_list"])):
-                if i != len((j["web_widgets"]["post_list"])):
-                    f.write(j["web_widgets"]["post_list"][i]["data"]["token"] + "\n")
-                else:
-                    f.write(j["web_widgets"]["post_list"][i]["data"]["token"])
+            try:
+                data = requests.get("https://api.divar.ir/v8/web-search/shiraz/buy-residential")
+                _data = data.json()
+                for k in range(len(_data["web_widgets"]["post_list"])):
+                    if k != len((_data["web_widgets"]["post_list"])):
+                        f.write(_data["web_widgets"]["post_list"][k]["data"]["token"] + "\n")
+                    else:
+                        f.write(_data["web_widgets"]["post_list"][k]["data"]["token"])
+            except Exception as e:
+                print(e, data)
 
 
-isExist = os.path.exists("./data.txt")
-if not isExist:
-    f()
-
+if os.path.exists("./data.txt"):
+    os.remove("./data.txt")
+f()
 with open("data.txt", 'r') as f:
     lines = [line[:-1] for line in f]
 links = [BASE_URL + line for line in lines]
 session = requests_cache.CachedSession('demo_cache', expire_after=timedelta(days=100))
-pages = list()
+apartments = []
+apartment = {'meterage': None, 'made_date': None, 'rooms': None, 'total_price': None, 'price_per_meter': None,
+             'advertiser': None, 'floors': None, 'size_of_land': None, 'features': None, 'link': None}
 for item in links:
-    pages.append(session.get(item, headers={'User-agent': 'Super Bot Power Level Over 9000'}))
-featurs1 = list()
-featurs2 = list()
-for item in pages:
-    soup = BeautifulSoup(item.content, "html.parser")
-    featurs1.append(soup.findAll("div", class_="kt-group-row-item"))
-    featurs2.append(soup.findAll("div", class_="kt-base-row kt-base-row--large kt-unexpandable-row"))
-apartments_features = list()
-for feature1, feature2, link in zip(featurs1, featurs2, links):
-    apartment = list()
-    apartment.append(int(unidecode(feature1[0].find("span", class_="kt-group-row-item__value").text)))
-    apartment.append(int(unidecode(feature1[1].find("span", class_="kt-group-row-item__value").text)))
-    apartment.append(int(unidecode(feature1[2].find("span", class_="kt-group-row-item__value").text)))
-    apartment.append(int(
-        unidecode((feature2[0].find("p", class_="kt-unexpandable-row__value").text)[:-6]).replace(',', '')))
-    apartment.append(int(
-        unidecode((feature2[1].find("p", class_="kt-unexpandable-row__value").text)[:-6]).replace(',', '')))
-    apartment.append((feature2[-1].find("p", class_="kt-unexpandable-row__value").text))
-    apartment.append(feature1[-3].find("span", class_="kt-group-row-item__value kt-body kt-body--stable").text)
-    apartment.append(feature1[-2].find("span", class_="kt-group-row-item__value kt-body kt-body--stable").text)
-    apartment.append(feature1[-1].find("span", class_="kt-group-row-item__value kt-body kt-body--stable").text)
-    apartment.append(link)
-    apartments_features.append(apartment)
+    try:
+        j = session.get(item).json()
+        for s in j.get('sections'):
+            if s['section_name'] == 'LIST_DATA':
+                for i in s.get('widgets'):
+                    if i['widget_type'] == 'GROUP_INFO_ROW':
+                        apartment['meterage'] = i.get('data').get('items')[0].get('value')
+                        apartment['made_date'] = i.get('data').get('items')[1].get('value')
+                        apartment['rooms'] = i.get('data').get('items')[2].get('value')
+                    if i['widget_type'] == 'UNEXPANDABLE_ROW':
+                        if i['data']['title'] == 'قیمت کل':
+                            apartment['total_price'] = i.get('data').get('value')
+                        if i['data']['title'] == 'قیمت هر متر':
+                            apartment['price_per_meter'] = i.get('data').get('value')
+                        if i['data']['title'] == 'آگهی‌دهنده':
+                            apartment['advertiser'] = i.get('data').get('value')
+                        if i['data']['title'] == 'طبقه':
+                            apartment['floors'] = i.get('data').get('value')
+                        if i['data']['title'] == "متراژ زمین":
+                            apartment['size_of_land'] = i.get('data').get('value')
+                    if i['widget_type'] == 'GROUP_FEATURE_ROW':
+                        features = []
+                        for j in i['data']['items']:
+                            features.append(f"{j.get('title')}:{j.get('value')}")
+                        apartment['features'] = features
+                apartment['link'] = item
+                apartments.append(apartment)
+    except Exception as e:
+        pprint(s)
 
+# featurs1 = list()
+# featurs2 = list()
+# for item in pages:
+#     soup = BeautifulSoup(item.content, "html.parser")
+#     featurs1.append(soup.findAll("div", class_="kt-group-row-item kt-group-row-item--info-row"))
+#     featurs2.append(soup.findAll("div", class_="kt-base-row kt-base-row--large kt-unexpandable-row"))
+# apartments_features = list()
+# for feature1, feature2, link in zip(featurs1, featurs2, links):
+#     apartment = list()
+#     apartment.append(int(unidecode(feature1[0].find("span", class_="kt-group-row-item__value").text)))
+#     apartment.append(int(unidecode(feature1[1].find("span", class_="kt-group-row-item__value").text)))
+#     apartment.append(int(unidecode(feature1[2].find("span", class_="kt-group-row-item__value").text)))
+#     apartment.append(int(
+#         unidecode((feature2[0].find("p", class_="kt-unexpandable-row__value").text)[:-6]).replace(',', '')))
+#     apartment.append(int(
+#         unidecode((feature2[1].find("p", class_="kt-unexpandable-row__value").text)[:-6]).replace(',', '')))
+#     apartment.append((feature2[-1].find("p", class_="kt-unexpandable-row__value").text))
+#     apartment.append(feature1[-3].find("span", class_="kt-group-row-item__value kt-body kt-body--stable").text)
+#     apartment.append(feature1[-2].find("span", class_="kt-group-row-item__value kt-body kt-body--stable").text)
+#     apartment.append(feature1[-1].find("span", class_="kt-group-row-item__value kt-body kt-body--stable").text)
+#     apartment.append(link)
+#     apartments_features.append(apartment)
+#
 create_apartments_sql = '''create table if not exists apartments(
      apartment_id serial primary key,
-     meterage int not null,
-     created int not null,
-     rooms int not null,
-     total_price bigint not null,
-     price_per_meter bigint not null,
-     floor varchar(255) ,
-     elevator varchar(255),
-     parking varchar(255),
-     warehouse varchar(255),
+     meterage int ,
+     made_date int ,
+     rooms int,
+     size_of_land int ,
+     total_price bigint ,
+     price_per_meter bigint ,
+     floors varchar(255) ,
+     advertiser varchar(255),
+     features text[],
      link varchar(255)
      )'''
 grant_sql = '''grant all on database apartment to postgres'''
 insert_sql = '''insert into apartments
-    (meterage,created,rooms,total_price,price_per_meter,floor,elevator,parking,warehouse,link)
+    (meterage,made_date,rooms,size_of_land,total_price,price_per_meter,floors,advertiser,features,link)
     values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
 '''
 
@@ -83,7 +111,7 @@ insert_sql = '''insert into apartments
 def insert_in_database(cursor, create_table_sql, insert_sql):
     cursor.execute(create_table_sql)
     print("table created successfully........")
-    for item in apartments_features:
+    for item in apartments:
         cursor.execute(insert_sql, item)
 
 
