@@ -1,2 +1,2 @@
 #!/bin/bash -x
-python3 ./scrape.py
+python3 ./app.py

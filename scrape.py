@@ -1,12 +1,68 @@
 import os
+import time
 from datetime import timedelta
 from pprint import pprint
 
 import psycopg2
 import requests
 import requests_cache
+from sqlalchemy import Column, String, Integer, create_engine, inspect
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import declarative_base, Session
 
 BASE_URL = "https://api.divar.ir/v8/posts-v2/web/"
+Base = declarative_base()
+engine = create_engine("postgresql+psycopg2://postgres:klmn@localhost:5432/apartment")
+
+
+class Apartment(Base):
+    __tablename__ = 'apartments'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    meterage = Column(String(255))
+    made_date = Column(String(255))
+    rooms = Column(String(255))
+    size_of_land = Column(String(255))
+    total_price = Column(String(255))
+    price_per_meter = Column(String(255))
+    floors = Column(String(255))
+    advertiser = Column(String(255))
+    features = Column(ARRAY(String(255)))
+    link = Column(String(255))
+
+
+def create_db():
+    conn = None
+    try:
+        conn = psycopg2.connect(
+            database="postgres", user='postgres', password='klmn', host='127.0.0.1', port='5432'
+        )
+        conn.autocommit = True
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM pg_database WHERE datname = 'apartment'")
+        exists = cursor.fetchone()
+        if not exists:
+            cursor.execute('CREATE DATABASE apartment')
+
+        conn = psycopg2.connect(
+            database="apartment", user='postgres', password='klmn', host='127.0.0.1', port='5432'
+        )
+    except (Exception, psycopg2.DatabaseError) as e:
+        print(e)
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def create_table():
+    if inspect(engine).has_table("apartments"):
+        Apartment.__table__.drop(engine)
+    metadata = Base.metadata  # Access the DB Engine
+    if not inspect(engine).has_table("apartments"):  # If table don't exist, Create.
+        metadata.create_all(engine)
+
+
+create_db()
+create_table()
 
 
 def f():
@@ -24,9 +80,9 @@ def f():
                 print(e, data)
 
 
-if os.path.exists("./data.txt"):
-    os.remove("./data.txt")
-f()
+if not os.path.exists("./data.txt"):
+    f()
+
 with open("data.txt", 'r') as f:
     lines = [line[:-1] for line in f]
 links = [BASE_URL + line for line in lines]
@@ -36,7 +92,8 @@ apartment = {'meterage': None, 'made_date': None, 'rooms': None, 'total_price': 
              'advertiser': None, 'floors': None, 'size_of_land': None, 'features': None, 'link': None}
 for item in links:
     try:
-        j = session.get(item).json()
+        j = session.get(item, headers={'User-agent': 'Super Bot Power Level Over 9000'}).json()
+        time.sleep(1)
         for s in j.get('sections'):
             if s['section_name'] == 'LIST_DATA':
                 for i in s.get('widgets'):
@@ -58,12 +115,13 @@ for item in links:
                     if i['widget_type'] == 'GROUP_FEATURE_ROW':
                         features = []
                         for j in i['data']['items']:
-                            features.append(f"{j.get('title')}:{j.get('value')}")
+                            features.append(j.get('title'))
                         apartment['features'] = features
                 apartment['link'] = item
                 apartments.append(apartment)
     except Exception as e:
         pprint(s)
+
 
 # featurs1 = list()
 # featurs2 = list()
@@ -88,56 +146,37 @@ for item in links:
 #     apartment.append(link)
 #     apartments_features.append(apartment)
 #
-create_apartments_sql = '''create table if not exists apartments(
-     apartment_id serial primary key,
-     meterage int ,
-     made_date int ,
-     rooms int,
-     size_of_land int ,
-     total_price bigint ,
-     price_per_meter bigint ,
-     floors varchar(255) ,
-     advertiser varchar(255),
-     features text[],
-     link varchar(255)
-     )'''
-grant_sql = '''grant all on database apartment to postgres'''
-insert_sql = '''insert into apartments
-    (meterage,made_date,rooms,size_of_land,total_price,price_per_meter,floors,advertiser,features,link)
-    values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-'''
+# create_apartments_sql = '''create table if not exists apartments(
+#      apartment_id serial primary key,
+#      meterage int ,
+#      made_date int ,
+#      rooms int,
+#      size_of_land int ,
+#      total_price bigint ,
+#      price_per_meter bigint ,
+#      floors varchar(255) ,
+#      advertiser varchar(255),
+#      features text[],
+#      link varchar(255)
+#      )'''
+# grant_sql = '''grant all on database apartment to postgres'''
+# insert_sql = '''insert into apartments
+#     (meterage,made_date,rooms,size_of_land,total_price,price_per_meter,floors,advertiser,features,link)
+#     values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+# '''
 
 
-def insert_in_database(cursor, create_table_sql, insert_sql):
-    cursor.execute(create_table_sql)
-    print("table created successfully........")
+# noinspection PyShadowingNames
+def insert_in_database():
     for item in apartments:
-        cursor.execute(insert_sql, item)
+        apartment = Apartment(**item)
+        with Session(engine) as _session:
+            _session.add(apartment)
+            _session.commit()
 
 
-conn = None
-try:
-    conn = psycopg2.connect(
-        database="postgres", user='postgres', password='klmn', host='127.0.0.1', port='5432'
-    )
-    conn.autocommit = True
-    cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM pg_database WHERE datname = 'apartment'")
-    exists = cursor.fetchone()
-    if not exists:
-        cursor.execute('CREATE DATABASE apartment')
-
-    conn = psycopg2.connect(
-        database="apartment", user='postgres', password='klmn', host='127.0.0.1', port='5432'
-    )
-
-    cursor = conn.cursor()
-    cursor.execute(grant_sql)
-    insert_in_database(cursor, create_apartments_sql, insert_sql)
-    cursor.close()
-    conn.commit()
-except (Exception, psycopg2.DatabaseError) as e:
-    print(e)
-finally:
-    if conn is not None:
-        conn.close()
+insert_in_database()
+# cursor.execute(create_table_sql)
+# print("table created successfully........")
+# for item in apartments:
+#     cursor.execute(insert_sql, item)
