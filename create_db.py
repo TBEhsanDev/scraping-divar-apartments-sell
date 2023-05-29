@@ -1,9 +1,4 @@
 import psycopg2
-from sqlalchemy import create_engine, inspect
-from sqlalchemy.orm import declarative_base, sessionmaker
-
-from models import Apartment
-
 
 
 def create_db():
@@ -29,7 +24,4 @@ def create_db():
             conn.close()
 
 
-
-
 create_db()
-

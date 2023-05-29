@@ -1,14 +1,15 @@
 import os
+import re
 import time
 from datetime import timedelta
-from pprint import pprint
 
 import psycopg2
 import requests
 import requests_cache
-from sqlalchemy import Column, String, Integer, create_engine, inspect
+from sqlalchemy import Column, String, Integer, create_engine, inspect, BIGINT
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import declarative_base, Session
+from unidecode import unidecode
 
 BASE_URL = "https://api.divar.ir/v8/posts-v2/web/"
 Base = declarative_base()
@@ -18,16 +19,17 @@ engine = create_engine("postgresql+psycopg2://postgres:klmn@localhost:5432/apart
 class Apartment(Base):
     __tablename__ = 'apartments'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    meterage = Column(String(255))
-    made_date = Column(String(255))
-    rooms = Column(String(255))
-    size_of_land = Column(String(255))
-    total_price = Column(String(255))
-    price_per_meter = Column(String(255))
-    floors = Column(String(255))
+    meterage = Column(Integer)
+    made_date = Column(Integer)
+    rooms = Column(Integer)
+    size_of_land = Column(Integer)
+    total_price = Column(BIGINT)
+    price_per_meter = Column(BIGINT)
+    floors = Column(Integer)
     advertiser = Column(String(255))
     features = Column(ARRAY(String(255)))
     link = Column(String(255))
+    description=Column(String(1000))
 
 
 def create_db():
@@ -88,39 +90,57 @@ with open("data.txt", 'r') as f:
 links = [BASE_URL + line for line in lines]
 session = requests_cache.CachedSession('demo_cache', expire_after=timedelta(days=100))
 apartments = []
-apartment = {'meterage': None, 'made_date': None, 'rooms': None, 'total_price': None, 'price_per_meter': None,
-             'advertiser': None, 'floors': None, 'size_of_land': None, 'features': None, 'link': None}
 for item in links:
+    apartment = {'meterage': None, 'made_date': None, 'rooms': None, 'total_price': None,
+                 'price_per_meter': None,
+                 'advertiser': None, 'floors': None, 'size_of_land': None, 'features': None,
+                 'link': None, 'description': None}
     try:
         j = session.get(item, headers={'User-agent': 'Super Bot Power Level Over 9000'}).json()
         time.sleep(1)
+    except Exception as e:
+        print(e, s)
+    try:
         for s in j.get('sections'):
-            if s['section_name'] == 'LIST_DATA':
+            if s.get('section_name') == 'LIST_DATA':
                 for i in s.get('widgets'):
-                    if i['widget_type'] == 'GROUP_INFO_ROW':
-                        apartment['meterage'] = i.get('data').get('items')[0].get('value')
-                        apartment['made_date'] = i.get('data').get('items')[1].get('value')
-                        apartment['rooms'] = i.get('data').get('items')[2].get('value')
-                    if i['widget_type'] == 'UNEXPANDABLE_ROW':
+                    if i.get('widget_type') == 'GROUP_INFO_ROW':
+                        apartment['meterage'] = int(
+                            unidecode(re.findall("[۰-۹]+", i.get('data').get('items')[0].get('value'))[0]))
+                        apartment['made_date'] = int(
+                            unidecode(re.findall("[۰-۹]+", i.get('data').get('items')[1].get('value'))[0]))
+                        apartment['rooms'] = int(
+                            unidecode(re.findall("[۰-۹]+", i.get('data').get('items')[2].get('value'))[0]))
+                    if i.get('widget_type') == 'UNEXPANDABLE_ROW':
                         if i['data']['title'] == 'قیمت کل':
-                            apartment['total_price'] = i.get('data').get('value')
+                            seperator = i.get('data').get('value')[-10] if len(
+                                i.get('data').get('value')) >= 10 else None
+                            apartment['total_price'] = int(unidecode(
+                                (i.get('data').get('value')[:-6]).replace(seperator, ''))) if seperator else None
                         if i['data']['title'] == 'قیمت هر متر':
-                            apartment['price_per_meter'] = i.get('data').get('value')
+                            seperator = i.get('data').get('value')[-10] if len(
+                                i.get('data').get('value')) >= 10 else None
+                            apartment['price_per_meter'] = int(unidecode(
+                                (i.get('data').get('value')[:-6]).replace(seperator, ''))) if seperator else None
                         if i['data']['title'] == 'آگهی‌دهنده':
                             apartment['advertiser'] = i.get('data').get('value')
                         if i['data']['title'] == 'طبقه':
-                            apartment['floors'] = i.get('data').get('value')
+                            apartment['floors'] = int(unidecode(re.findall("[۰-۹]+", i.get('data').get('value'))[0]))
                         if i['data']['title'] == "متراژ زمین":
-                            apartment['size_of_land'] = i.get('data').get('value')
-                    if i['widget_type'] == 'GROUP_FEATURE_ROW':
+                            apartment['size_of_land'] = int(
+                                unidecode(re.findall("[۰-۹]+", i.get('data').get('value'))[0]))
+                    if i.get('widget_type') == 'GROUP_FEATURE_ROW':
                         features = []
                         for j in i['data']['items']:
                             features.append(j.get('title'))
                         apartment['features'] = features
                 apartment['link'] = item
-                apartments.append(apartment)
+        if j.get('seo'):
+            apartment['description'] = j.get('seo').get('description')
+        apartments.append(apartment)
+
     except Exception as e:
-        pprint(s)
+        print(e, s)
 
 
 # featurs1 = list()
@@ -168,9 +188,9 @@ for item in links:
 
 # noinspection PyShadowingNames
 def insert_in_database():
-    for item in apartments:
-        apartment = Apartment(**item)
-        with Session(engine) as _session:
+    with Session(engine) as _session:
+        for item in apartments:
+            apartment = Apartment(**item)
             _session.add(apartment)
             _session.commit()
 
