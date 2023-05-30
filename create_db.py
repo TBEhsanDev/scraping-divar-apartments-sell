@@ -1,4 +1,7 @@
 import psycopg2
+from sqlalchemy import inspect
+
+from models import Apartment, engine, Base
 
 
 def create_db():
@@ -24,4 +27,13 @@ def create_db():
             conn.close()
 
 
+def create_table():
+    if inspect(engine).has_table("apartments"):
+        Apartment.__table__.drop(engine)
+    metadata = Base.metadata  # Access the DB Engine
+    if not inspect(engine).has_table("apartments"):  # If table don't exist, Create.
+        metadata.create_all(engine)
+
+
 create_db()
+create_table()

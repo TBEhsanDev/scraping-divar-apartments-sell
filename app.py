@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from models import Apartment, engine
@@ -12,11 +13,10 @@ def search(*args, **kwargs):
         form = request.form
         l = []
         with Session(engine) as session:
-            apartments = session.execute(session.query(Apartment)).scalars().all()
+            apartments = select(session.query(Apartment)).scalars().all()
             for i in apartments:
                 a = i.__dict__
                 del a['_sa_instance_state']
-                a[]
                 l.append(a)
             return render_template('result.html', result=l)
     else:

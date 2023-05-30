@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, String, Integer, inspect, create_engine, BIGINT
+from sqlalchemy import Column, String, Integer, create_engine, BIGINT
 from sqlalchemy.dialects.postgresql import ARRAY
 
 engine = create_engine("postgresql+psycopg2://postgres:klmn@localhost:5432/apartment")
@@ -20,14 +20,3 @@ class Apartment(Base.Model):
     features = Column(ARRAY(String(255)))
     link = Column(String(255))
     description = Column(String(1000))
-
-
-Base.metadata.create_all(engine, checkfirst=True)
-
-
-def create_table():
-    if inspect(engine).has_table("apartments"):
-        Apartment.__table__.drop(engine)
-    metadata = Base.metadata  # Access the DB Engine
-    if not inspect(engine).has_table("apartments"):  # If table don't exist, Create.
-        metadata.create_all(engine)
