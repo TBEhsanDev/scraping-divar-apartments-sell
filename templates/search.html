@@ -1,11 +1,15 @@
 <html>
-<body style="background-color:orange " >
+<body style="background-color:orange ">
 <form action="http://localhost:5000/search" method="POST" style="text-align:right">
-    <p style="color:blue">متراژ <input type="number" name="Name" min="40" max="120"/></p>
-    <p style="color:blue">چند روز اخیر <input type="number" name="Physics" min="0" max="50"/></p>
-    <p style="color:blue">تعداد اتاق<input type="number" name="chemistry" min="0" max="50"/></p>
-    <p style="color:blue">قیمت کل <input type="number" name="chemistry" min="0" max="50"/></p>
-    <p style="color:blue">قیمت هر متر <input type="number" name="chemistry" min="0" max="50"/></p>
+    <p style="color:blue">متراژ <input type="number" name="meterage" min="40" max="120"/></p>
+    <p style="color:blue">سال ساخت <input type="number" name="made_date" min="1300" max="1402"/></p>
+    <p style="color:blue">تعداد اتاق<input type="number" name="rooms" min="0" max="50"/></p>
+    <p style="color:blue">کمینه قیمت (بر حسب میلیون تومان) <input type="number" name="min_total_price" min="100" step="10"
+                                                                  max=""/></p>
+    <p style="color:blue">بیشینه قیمت (بر حسب میلیون تومان) <input type="number" name="max_total_price" min="200" step="10"
+                                                                   max=""/></p>
+    <p style="color:blue">کمینه قیمت هر متر مربع (بر حسب تومان)<input type="number" name="min_price_per_meter"
+                                                                      min="100000" max=""/></p>
     <input style="color:green" type="submit" value="submit"/>
 </form>
 </body>

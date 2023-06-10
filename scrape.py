@@ -1,6 +1,5 @@
 import os
 import re
-import time
 from datetime import timedelta
 
 import requests
@@ -97,7 +96,6 @@ def scrape():
                      'link': None, 'description': None}
         try:
             j = session.get(item, headers={'User-agent': 'Super Bot Power Level Over 9000'}).json()
-            time.sleep(1)
         except Exception as e:
             print(e, s)
         try:
@@ -143,7 +141,6 @@ def scrape():
         except Exception as e:
             print(e, s)
     Apartment.insert_in_database(apartments)
-
     # featurs1 = list()
     # featurs2 = list()
     # for item in pages:

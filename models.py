@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, String, Integer, create_engine, BIGINT
+from sqlalchemy import Column, String, Integer, create_engine, BIGINT, select, inspect
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Session
 
@@ -23,8 +23,28 @@ class Apartment(Base.Model):
     description = Column(String(1000))
 
     @classmethod
+    def select(cls, *columns):
+        return select(*columns if columns else [cls])
+
+    @classmethod
+    def create_table(cls):
+        if inspect(engine).has_table("apartments"):
+            Apartment.__table__.drop(engine)
+        metadata = Base.metadata  # Access the DB Engine
+        if not inspect(engine).has_table("apartments"):  # If table don't exist, Create.
+            metadata.create_all(engine)
+
+    @classmethod
     def insert_in_database(cls, apartments):
+        cls.create_table()
         with Session(engine) as _session:
             for item in apartments:
                 apartment = cls(**item)
                 _session.add(apartment)
+                _session.commit()
+
+    @classmethod
+    def select_from_database(cls):
+        with Session(engine) as _session:
+            apartments = _session.scalars(cls.select()).all()
+        return apartments
