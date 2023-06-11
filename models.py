@@ -20,7 +20,7 @@ class Apartment(Base.Model):
     advertiser = Column(String(255))
     features = Column(ARRAY(String(255)))
     link = Column(String(255))
-    description = Column(String(1000))
+    description = Column(String(5000))
 
     @classmethod
     def select(cls, *columns):

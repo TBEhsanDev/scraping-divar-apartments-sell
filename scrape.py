@@ -141,8 +141,8 @@ def scrape(update=False):
                                 features.append(j.get('title'))
                             apartment['features'] = features
                     apartment['link'] = item
-            if j.get('seo'):
-                apartment['description'] = j.get('seo').get('description')
+            if data.get('seo'):
+                apartment['description'] = data.get('seo').get('description')
             apartments.append(apartment)
 
         except Exception as e:
