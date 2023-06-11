@@ -16,7 +16,7 @@ class Apartment(Base.Model):
     size_of_land = Column(Integer)
     total_price = Column(BIGINT)
     price_per_meter = Column(BIGINT)
-    floors = Column(Integer)
+    floors = Column(String(255))
     advertiser = Column(String(255))
     features = Column(ARRAY(String(255)))
     link = Column(String(255))

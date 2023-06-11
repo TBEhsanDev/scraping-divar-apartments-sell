@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from datetime import timedelta
 
 import requests
@@ -68,7 +69,7 @@ BASE_URL = "https://api.divar.ir/v8/posts-v2/web/"
 
 def get_links():
     with open('data.txt', 'a', encoding='utf-8') as f:
-        for i in range(10):
+        for _ in range(10):
             try:
                 data = requests.get("https://api.divar.ir/v8/web-search/shiraz/buy-residential")
                 _data = data.json()
@@ -81,7 +82,9 @@ def get_links():
                 print(e, data)
 
 
-def scrape():
+def scrape(update=False):
+    if update:
+        os.remove("./data.txt")
     if not os.path.exists("./data.txt"):
         get_links()
     with open("data.txt", 'r') as f:
@@ -94,12 +97,15 @@ def scrape():
                      'price_per_meter': None,
                      'advertiser': None, 'floors': None, 'size_of_land': None, 'features': None,
                      'link': None, 'description': None}
+        response = session.get(item, headers={'User-agent': 'Super Bot Power Level Over 9000'})
+        if response.status_code in (503, 429):
+            time.sleep(1)
+            response = session.get(item, headers={'User-agent': 'Super Bot Power Level Over 9000'})
+            if response.status_code == (429, 503):
+                continue
+        data = response.json()
         try:
-            j = session.get(item, headers={'User-agent': 'Super Bot Power Level Over 9000'}).json()
-        except Exception as e:
-            print(e, s)
-        try:
-            for s in j.get('sections'):
+            for s in data.get('sections'):
                 if s.get('section_name') == 'LIST_DATA':
                     for i in s.get('widgets'):
                         if i.get('widget_type') == 'GROUP_INFO_ROW':
@@ -108,7 +114,9 @@ def scrape():
                             apartment['made_date'] = int(
                                 unidecode(re.findall("[۰-۹]+", i.get('data').get('items')[1].get('value'))[0]))
                             apartment['rooms'] = int(
-                                unidecode(re.findall("[۰-۹]+", i.get('data').get('items')[2].get('value'))[0]))
+                                unidecode(
+                                    re.findall("[۰-۹]+", i.get('data').get('items')[2].get('value'))[0])) if re.findall(
+                                "[۰-۹]+", i.get('data').get('items')[2].get('value')) else 0
                         if i.get('widget_type') == 'UNEXPANDABLE_ROW':
                             if i['data']['title'] == 'قیمت کل':
                                 seperator = i.get('data').get('value')[-10] if len(
@@ -123,8 +131,7 @@ def scrape():
                             if i['data']['title'] == 'آگهی‌دهنده':
                                 apartment['advertiser'] = i.get('data').get('value')
                             if i['data']['title'] == 'طبقه':
-                                apartment['floors'] = int(
-                                    unidecode(re.findall("[۰-۹]+", i.get('data').get('value'))[0]))
+                                apartment['floors'] = i.get('data').get('value')
                             if i['data']['title'] == "متراژ زمین":
                                 apartment['size_of_land'] = int(
                                     unidecode(re.findall("[۰-۹]+", i.get('data').get('value'))[0]))
