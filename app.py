@@ -10,26 +10,15 @@ app = Flask(__name__)
 
 @app.route('/download', methods=['GET'])
 def excel():
-    result = []
     path = './apartments_divar.xlsx'
     with Session(engine) as session:
         apartments = session.scalars(Apartment.select()).all()
-    for i, item in enumerate(apartments):
-        a = item.__dict__
-        del a['_sa_instance_state']
-        del a['id']
-        a['count'] = i
-        des = a.pop('description')
-        des = ("description", des)
-        l = list(a.items())
-        l.append(des)
-        a = dict(l)
-        result.append(a)
+    result = Apartment.query_result_to_list_of_dict(apartments)
     workbook = xlsxwriter.Workbook('apartments_divar.xlsx')
     worksheet = workbook.add_worksheet()
 
-    headers = {'count': 10, 'meterage': 15, 'made_date': 15, 'rooms': 15, 'size_of_land': 15, 'floors': 15,
-               'features': 20, 'price_per_meter': 15,
+    headers = {'count': 10, 'meterage': 15, 'made_date': 15, 'rooms': 15,
+               'size_of_land': 15, 'floors': 15, 'features': 20, 'price_per_meter': 15,
                'description': 50, 'total_price': 15, 'advertiser': 15, 'link': 30}
 
     for row_num, data in enumerate(result):
@@ -58,7 +47,6 @@ def search(*args, **kwargs):
         min_price_per_meter = form.get('min_price_per_meter')
         if update:
             scrape(update=True)
-        l = []
         with Session(engine) as session:
             apartments = session.scalars(Apartment.select().where(
                 Apartment.meterage >= int(meterage) if meterage else True,
@@ -68,13 +56,8 @@ def search(*args, **kwargs):
                 Apartment.total_price <= int(max_total_price) * 1_000_000 if max_total_price else True,
                 Apartment.price_per_meter >= int(min_price_per_meter) if min_price_per_meter else True
             )).all()
-        for i, item in enumerate(apartments):
-            a = item.__dict__
-            del a['_sa_instance_state']
-            del a['id']
-            a['count'] = i
-            l.append(a)
-        return render_template('result.html', result=l)
+        result = Apartment.query_result_to_list_of_dict(apartments)
+        return render_template('result.html', result=result)
     else:
         user = request.args.get('nm')
         return render_template('search.html')

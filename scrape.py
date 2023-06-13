@@ -1,7 +1,7 @@
 import os
 import re
 import time
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 import requests
 import requests_cache
@@ -67,19 +67,36 @@ BASE_URL = "https://api.divar.ir/v8/posts-v2/web/"
 # create_table()
 
 
-def get_links():
-    with open('data.txt', 'a', encoding='utf-8') as f:
-        for _ in range(10):
+def get_links(days=1, items=240):
+    base_url = "https://api.divar.ir/v8/web-search/6/apartment-sell"
+    pages = items // 24
+    headers = {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'}
+    last_days = (datetime.now() - timedelta(days=days)).timestamp()
+    with open('data.txt', 'r+', encoding='utf-8') as f:
+        for page_num in range(pages):
             try:
-                data = requests.get("https://api.divar.ir/v8/web-search/shiraz/buy-residential")
+                data = requests.post(base_url,
+                                     json={"json_schema": {"category": {"value": "apartment-sell"},
+                                                           "sort": {"value": "sort_date"},
+                                                           "cities": ["6"]},
+                                           "last-post-date": last_days, "page": page_num})
+                # data = requests.get("https://api.divar.ir/v8/web-search/shiraz/buy-residential")
                 _data = data.json()
                 for k in range(len(_data["web_widgets"]["post_list"])):
                     if k != len((_data["web_widgets"]["post_list"])):
-                        f.write(_data["web_widgets"]["post_list"][k]["data"]["token"] + "\n")
+                        token = _data["web_widgets"]["post_list"][k]["data"]["token"]
+                        for line in f:
+                            if token in line:
+                                break
+                        f.write(token + "\n")
                     else:
-                        f.write(_data["web_widgets"]["post_list"][k]["data"]["token"])
+                        f.write(token)
             except Exception as e:
                 print(e, data)
+
+
+get_links()
 
 
 def scrape(update=False):
@@ -190,8 +207,7 @@ def scrape(update=False):
     #     values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
     # '''
 
-
-scrape()
+# scrape()
 # noinspection PyShadowingNames
 
 

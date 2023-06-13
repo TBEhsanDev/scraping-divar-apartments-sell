@@ -48,3 +48,19 @@ class Apartment(Base.Model):
         with Session(engine) as _session:
             apartments = _session.scalars(cls.select()).all()
         return apartments
+
+    @classmethod
+    def query_result_to_list_of_dict(cls, apartments):
+        result = []
+        for i, item in enumerate(apartments):
+            a = item.__dict__
+            del a['_sa_instance_state']
+            del a['id']
+            a['count'] = i
+            des = a.pop('description')
+            des = ("description", des)
+            l = list(a.items())
+            l.append(des)
+            a = dict(l)
+            result.append(a)
+        return result
