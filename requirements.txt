@@ -25,3 +25,4 @@ Werkzeug==2.3.4
 
 XlsxWriter~=3.1.2
 celery~=5.3.0
+PyJWT~=2.7.0
