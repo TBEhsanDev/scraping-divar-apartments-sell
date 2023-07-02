@@ -4,6 +4,38 @@
 <h1><a href="http://localhost:5000/logout">logout</a></h1>
 <form action="http://localhost:5000/search" method="POST" style="text-align:right">
     <h6 style="color:blue">به روز رسانی<input type="checkbox" name="update"></h6>
+    <label for="case">انتخاب کنید</label>
+    <select id="case" name="case">
+        <optgroup label="فروش مسکونی">
+            <option value="buy-residential__buy-apartment">آپارتمان</option>
+            <option value="buy-residential__buy-villa">خانه و ویلا</option>
+            <option value="buy-residential__buy-old-house">زمین و کلنگی</option>
+        </optgroup>
+        <optgroup label="اجاره مسکونی">
+            <option value="rent-residential__rent-apartment">آپارتمان</option>
+            <option value="rent-residential__rent-villa">خانه و ویلا</option>
+        </optgroup>
+        <optgroup label="فروش اداری وتجاری">
+            <option value="buy-commercial-property__buy-office">دفتر کار،اتاق اداری و مطب</option>
+            <option value="buy-commercial-property__buy-store">مغازه و غرفه</option>
+            <option value="buy-commercial-property__buy-industrial-agricultural-property">صنعتی،کشاورزی و تجاری</option>
+        </optgroup>
+        <optgroup label="اجاره اداری وتجاری">
+            <option value="rent-commercial-property__buy-office">دفتر کار،اتاق اداری و مطب</option>
+            <option value="rent-commercial-property__buy-store">مغازه و غرفه</option>
+            <option value="rent-commercial-property__buy-industrial-agricultural-property">صنعتی،کشاورزی و تجاری
+            </option>
+        </optgroup>
+        <optgroup label="اجاره کوتاه مدت">
+            <option value="rent-temporary__rent-temporary-suite-apartment"> آپارتمان و سوییت</option>
+            <option value="rent-temporary__rent-temporary-villa">ویلا و باغ</option>
+            <option value="rent-temporary__rent-temporary-workspace"> دفتر کار و فضای آموزشی</option>
+        </optgroup>
+        <optgroup label="پروژه ای ساخت و ساز">
+            <option value="real-estate-services__contribution-construction">مشارکت در ساخت</option>
+            <option value="real-estate-services__pre-sell-home">پیش فروش</option>
+        </optgroup>
+    </select>
     <p style="color:blue">متراژ <input type="number" name="meterage" min="40" max="120"/></p>
     <p style="color:blue">سال ساخت <input type="number" name="made_date" min="1300" max="1402"/></p>
     <p style="color:blue">تعداد اتاق<input type="number" name="rooms" min="0" max="50"/></p>

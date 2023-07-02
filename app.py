@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from models import Apartment, engine, User
 from scrape import scrape
 from settings import app
-from utils import token_required, create_excel
+from utils import create_excel, token_required
 
 
 @app.route('/download', methods=['GET'])
@@ -31,7 +31,7 @@ def search(*args, **kwargs):
         max_total_price = form.get('max_total_price')
         min_price_per_meter = form.get('min_price_per_meter')
         if update:
-            scrape(update=True)
+            scrape(update=True, case=form.get('case'))
 
         with Session(engine) as session:
             apartments = Apartment.select_from_database(Apartment.made_date >= int(made_date) if made_date else True,
@@ -69,10 +69,10 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        user: User = User.select_from_database(User.username == username, User.password == password)[0]
-        if user:
-            token = jwt.encode({'username': user.username}, app.config['SECRET_KEY'], algorithm="HS256")
-            resp = make_response(render_template('search.html', message=f'{user.first_name} {user.last_name}'))
+        users: list[User] = User.select_from_database(User.username == username, User.password == password)
+        if users:
+            token = jwt.encode({'username': users[0].username}, app.config['SECRET_KEY'], algorithm="HS256")
+            resp = make_response(render_template('search.html', message=f'{users[0].first_name} {users[0].last_name}'))
             resp.set_cookie('jwt', token)
             return resp
         else:
